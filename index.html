@@ -1,0 +1,362 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Employee Payroll Management System">
+  <title>Employee Payroll Management System</title>
+  <style>
+    :root {
+      --bg: #f3f6fb; --card: #fff; --text: #172033; --muted: #64748b;
+      --primary: #3157d5; --primary-dark: #2444b5; --border: #e2e8f0;
+      --green: #138a55; --red: #c0394b; --shadow: 0 12px 32px rgba(22,34,60,.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); }
+    header { background: linear-gradient(120deg, #172554, #3157d5); color: white; padding: 30px 20px; }
+    .header-inner, main { max-width: 1100px; margin: auto; }
+    header h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 34px); }
+    header p { margin: 0; color: #dbeafe; }
+    main { padding: 26px 18px 50px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+    .stat, .panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+    .stat { padding: 17px 20px; }
+    .stat span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .stat strong { font-size: 25px; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    .panel { padding: 22px; }
+    h2 { margin: 0 0 18px; font-size: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 700; color: #344054; }
+    input { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 11px 12px; font-size: 14px; outline: none; background: white; }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49,87,213,.12); }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    button { border: 0; border-radius: 8px; padding: 11px 15px; font-weight: 700; cursor: pointer; font-size: 14px; }
+    button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+    .primary { background: var(--primary); color: white; }
+    .primary:hover { background: var(--primary-dark); }
+    .secondary { background: #e8eefc; color: #2444b5; }
+    .danger { background: #fff0f1; color: var(--red); padding: 8px 10px; }
+    .actions { display: flex; gap: 9px; margin-top: 16px; flex-wrap: wrap; }
+    .result { margin-top: 16px; padding: 14px; border-radius: 10px; background: #eff6ff; border: 1px solid #bfdbfe; display: none; }
+    .result.show { display: block; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; font-size: 13px; }
+    .result-grid strong { display: block; margin-top: 4px; font-size: 16px; }
+    .net { color: var(--green); }
+    .table-panel { margin-top: 18px; }
+    .table-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .table-top h2 { margin: 0; }
+    .search { max-width: 280px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; }
+    .empty { color: var(--muted); text-align: center; padding: 25px; }
+    .notice { margin-top: 15px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    footer { text-align: center; color: var(--muted); padding: 20px; font-size: 12px; }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .panel { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Employee Payroll Management System</h1>
+      <p>Register employees, calculate salary and manage payroll records.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats" aria-label="Payroll summary">
+      <div class="stat"><span>Total employees</span><strong id="employeeCount">0</strong></div>
+      <div class="stat"><span>Total basic salary</span><strong id="basicTotal">₹0.00</strong></div>
+      <div class="stat"><span>Total net payroll</span><strong id="netTotal">₹0.00</strong></div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Employee Registration</h2>
+        <form id="employeeForm">
+          <div class="form-grid">
+            <div class="field">
+              <label for="empId">Employee ID</label>
+              <input id="empId" type="text" placeholder="e.g. EMP101" required maxlength="20">
+            </div>
+            <div class="field">
+              <label for="empName">Employee name</label>
+              <input id="empName" type="text" placeholder="Enter full name" required maxlength="60">
+            </div>
+            <div class="field">
+              <label for="department">Department</label>
+              <input id="department" type="text" placeholder="e.g. IT" required maxlength="40">
+            </div>
+            <div class="field">
+              <label for="basicSalary">Basic salary (₹)</label>
+              <input id="basicSalary" type="number" min="1" step="0.01" placeholder="30000" required>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" type="submit">Register employee</button>
+            <button class="secondary" type="reset">Clear form</button>
+          </div>
+          <p class="hint">Employee IDs must be unique. Records are saved in this browser using local storage.</p>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Salary Calculation</h2>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="salaryEmployee">Select employee</label>
+            <input id="salaryEmployee" list="employeeOptions" placeholder="Choose or type an employee ID">
+            <datalist id="employeeOptions"></datalist>
+          </div>
+          <div class="field">
+            <label for="hraRate">HRA (%)</label>
+            <input id="hraRate" type="number" min="0" max="100" step="0.01" value="20">
+          </div>
+          <div class="field">
+            <label for="daRate">DA (%)</label>
+            <input id="daRate" type="number" min="0" max="100" step="0.01" value="10">
+          </div>
+          <div class="field full">
+            <label for="pfRate">PF deduction (%)</label>
+            <input id="pfRate" type="number" min="0" max="100" step="0.01" value="12">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="calculateBtn" type="button">Calculate salary</button>
+          <button class="secondary" id="savePayrollBtn" type="button" disabled>Save payroll</button>
+        </div>
+        <div class="result" id="salaryResult" aria-live="polite">
+          <div class="result-grid">
+            <div>Basic salary<strong id="rBasic">₹0.00</strong></div>
+            <div>HRA<strong id="rHra">₹0.00</strong></div>
+            <div>DA<strong id="rDa">₹0.00</strong></div>
+            <div>PF deduction<strong id="rPf">₹0.00</strong></div>
+            <div>Gross salary<strong id="rGross">₹0.00</strong></div>
+            <div>Net salary<strong class="net" id="rNet">₹0.00</strong></div>
+          </div>
+        </div>
+        <p class="notice">Formula: Gross = Basic + HRA + DA. Net = Gross − PF. Rates are sample values and can be changed.</p>
+      </section>
+    </div>
+
+    <section class="panel table-panel">
+      <div class="table-top">
+        <h2>Employee Payroll Records</h2>
+        <input class="search" id="searchInput" type="search" placeholder="Search by ID, name or department" aria-label="Search employees">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee ID</th><th>Name</th><th>Department</th><th>Basic (₹)</th>
+              <th>Gross (₹)</th><th>Net (₹)</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable">
+            <tr><td class="empty" colspan="7">No employees registered yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="secondary" id="exportBtn" type="button">Export CSV</button>
+        <button class="danger" id="clearAllBtn" type="button">Delete all records</button>
+      </div>
+    </section>
+  </main>
+  <footer>Employee Payroll Management System · Frontend demonstration project</footer>
+
+  <script>
+    const STORAGE_KEY = "employeePayrollRecords_v1";
+    let employees = loadEmployees();
+    let pendingPayroll = null;
+
+    function loadEmployees() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+      render();
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency", currency: "INR", minimumFractionDigits: 2
+      }).format(Number(value) || 0);
+    }
+
+    function calculate(basic, hraRate, daRate, pfRate) {
+      const hra = basic * hraRate / 100;
+      const da = basic * daRate / 100;
+      const pf = basic * pfRate / 100;
+      const gross = basic + hra + da;
+      return { hra, da, pf, gross, net: gross - pf };
+    }
+
+    function render() {
+      const tbody = document.getElementById("employeeTable");
+      const search = document.getElementById("searchInput").value.trim().toLowerCase();
+      const filtered = employees.filter(e =>
+        [e.id, e.name, e.department].some(v => String(v).toLowerCase().includes(search))
+      );
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td class="empty" colspan="7">${employees.length ? "No matching employees." : "No employees registered yet."}</td></tr>`;
+      } else {
+        tbody.innerHTML = filtered.map(e => `
+          <tr>
+            <td>${escapeHtml(e.id)}</td>
+            <td>${escapeHtml(e.name)}</td>
+            <td>${escapeHtml(e.department)}</td>
+            <td>${money(e.basic)}</td>
+            <td>${e.payroll ? money(e.payroll.gross) : "—"}</td>
+            <td>${e.payroll ? money(e.payroll.net) : "—"}</td>
+            <td><button class="danger" type="button" data-delete="${escapeHtml(e.id)}">Delete</button></td>
+          </tr>`).join("");
+      }
+
+      document.getElementById("employeeCount").textContent = employees.length;
+      document.getElementById("basicTotal").textContent = money(employees.reduce((s, e) => s + Number(e.basic), 0));
+      document.getElementById("netTotal").textContent = money(employees.reduce((s, e) => s + (e.payroll ? Number(e.payroll.net) : 0), 0));
+      document.getElementById("employeeOptions").innerHTML = employees.map(e =>
+        `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`
+      ).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    document.getElementById("employeeForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const id = document.getElementById("empId").value.trim();
+      const name = document.getElementById("empName").value.trim();
+      const department = document.getElementById("department").value.trim();
+      const basic = Number(document.getElementById("basicSalary").value);
+
+      if (!id || !name || !department || !Number.isFinite(basic) || basic <= 0) {
+        alert("Please enter valid employee details and a basic salary greater than zero.");
+        return;
+      }
+      if (employees.some(e => e.id.toLowerCase() === id.toLowerCase())) {
+        alert("This employee ID already exists. Please use a unique ID.");
+        return;
+      }
+      employees.push({ id, name, department, basic, payroll: null });
+      persist();
+      event.target.reset();
+      alert("Employee registered successfully.");
+    });
+
+    document.getElementById("calculateBtn").addEventListener("click", () => {
+      const id = document.getElementById("salaryEmployee").value.trim();
+      const employee = employees.find(e => e.id.toLowerCase() === id.toLowerCase());
+      if (!employee) {
+        alert("Select a valid registered employee ID.");
+        return;
+      }
+
+      const hraRate = Number(document.getElementById("hraRate").value);
+      const daRate = Number(document.getElementById("daRate").value);
+      const pfRate = Number(document.getElementById("pfRate").value);
+      if ([hraRate, daRate, pfRate].some(v => !Number.isFinite(v) || v < 0 || v > 100)) {
+        alert("Enter valid salary rates between 0 and 100.");
+        return;
+      }
+
+      const result = calculate(Number(employee.basic), hraRate, daRate, pfRate);
+      pendingPayroll = { id: employee.id, rates: { hraRate, daRate, pfRate }, ...result };
+      document.getElementById("rBasic").textContent = money(employee.basic);
+      document.getElementById("rHra").textContent = money(result.hra);
+      document.getElementById("rDa").textContent = money(result.da);
+      document.getElementById("rPf").textContent = money(result.pf);
+      document.getElementById("rGross").textContent = money(result.gross);
+      document.getElementById("rNet").textContent = money(result.net);
+      document.getElementById("salaryResult").classList.add("show");
+      document.getElementById("savePayrollBtn").disabled = false;
+    });
+
+    document.getElementById("savePayrollBtn").addEventListener("click", () => {
+      if (!pendingPayroll) return;
+      const employee = employees.find(e => e.id === pendingPayroll.id);
+      if (!employee) return;
+      employee.payroll = {
+        hra: pendingPayroll.hra, da: pendingPayroll.da, pf: pendingPayroll.pf,
+        gross: pendingPayroll.gross, net: pendingPayroll.net,
+        rates: pendingPayroll.rates
+      };
+      persist();
+      alert("Payroll saved successfully.");
+    });
+
+    document.getElementById("employeeTable").addEventListener("click", event => {
+      const id = event.target.dataset.delete;
+      if (!id) return;
+      if (confirm(`Delete employee ${id} and their payroll record?`)) {
+        employees = employees.filter(e => e.id !== id);
+        if (pendingPayroll && pendingPayroll.id === id) pendingPayroll = null;
+        persist();
+      }
+    });
+
+    document.getElementById("searchInput").addEventListener("input", render);
+
+    document.getElementById("clearAllBtn").addEventListener("click", () => {
+      if (employees.length && confirm("Delete all employee and payroll records from this browser?")) {
+        employees = [];
+        pendingPayroll = null;
+        localStorage.removeItem(STORAGE_KEY);
+        document.getElementById("salaryResult").classList.remove("show");
+        document.getElementById("savePayrollBtn").disabled = true;
+        render();
+      }
+    });
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      if (!employees.length) {
+        alert("There are no records to export.");
+        return;
+      }
+      const rows = [["Employee ID", "Name", "Department", "Basic Salary", "HRA", "DA", "PF", "Gross Salary", "Net Salary"]];
+      employees.forEach(e => {
+        const p = e.payroll || {};
+        rows.push([e.id, e.name, e.department, e.basic, p.hra ?? "", p.da ?? "", p.pf ?? "", p.gross ?? "", p.net ?? ""]);
+      });
+      const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "employee-payroll.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    render();
+  </script>
+</body>
+</html>
+'''
+
+path = Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created {path} ({path.stat().st_size} bytes)")
